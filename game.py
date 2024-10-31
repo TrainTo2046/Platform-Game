@@ -1,5 +1,8 @@
 import sys
 import pygame
+from scripts.utils import load_image, load_images
+from scripts.entities import PhysicsEntity
+from scripts.tilemap import Tilemap
 
 class Game:
     def __init__(self) -> None:   
@@ -10,34 +13,55 @@ class Game:
 
         pygame.display.set_caption('Platformer Game')
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.clock = pygame.time.Clock()
 
-        self.img = pygame.image.load('data/images/clouds/cloud_1.png')
-        # make the black background on the image transparent
-        self.img.set_colorkey((0, 0, 0))
-        self.img_pos = [160, 260]
+        """
+        .Surface()
+        generates an empty image with (w, h) dimension
+        it is in black color
+
+        we render on to this display and scale it up to the screen
+
+        Steps
+        1) create a display half the size of the screen
+        2) render everything onto the display
+        3) scale the display to fit the screen
+        4) blit disply  on top of the screen
+        """
+        self.display = pygame.Surface((320, 240))
+
+        self.clock = pygame.time.Clock()
+       
         self.movement = [False, False]
 
-        self.collision_area = pygame.Rect(50, 50, 300, 50)
+        self.assets = {
+            'player'        : load_image('entities/player.png'),
+            'large_decor'   : load_images('tiles/large_decor'),
+            'grass'         : load_images('tiles/grass'),
+            'decor'         : load_images('tiles/decor'),
+            'stone'         : load_images('tiles/stone')
+        }
+
+        # creating a player entity
+        self.player = PhysicsEntity(self, 'player', (50, 50), (8, 15))
+
+        # create tilemap
+        self.tilemap = Tilemap(self, tile_size=16)
 
     def run(self):
         # game loop
         while True:
-            self.screen.fill((14, 219, 248))
-            
-            img_r = pygame.Rect(self.img_pos[0], self.img_pos[1], self.img.get_width(), self.img.get_height())
-            # collision test
-            # if true then two rect: img_r and collision_area are overlapping in some way
-            # collision is true
-            if img_r.colliderect(self.collision_area):
-                # (0, 100, 255) -> color
-                pygame.draw.rect(self.screen, (0, 100, 255), self.collision_area)
-            else:
-                # (0, 50, 155) -> color
-                pygame.draw.rect(self.screen, (0, 50, 155), self.collision_area)
-                 
-            self.img_pos[1] += (self.movement[1] - self.movement[0]) * 5
-            self.screen.blit(self.img, self.img_pos)
+            self.display.fill((14, 219, 248))
+            # update and render tile map
+            self.tilemap.render(self.display)
+
+            # want to render the tiles before the player
+            # so the tile doesn't hide the player
+
+            # update and render player
+            self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
+            self.player.render(self.display)
+
+            print(self.tilemap.physics_rects_around(self.player.pos))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -45,17 +69,25 @@ class Game:
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     k = event.key
-                    if (k == pygame.K_UP or k == pygame.K_w):
+                    if (k == pygame.K_LEFT or k == pygame.K_a):
                         self.movement[0] = True
-                    if (k == pygame.K_DOWN or k == pygame.K_s):
+                    if (k == pygame.K_RIGHT or k == pygame.K_d):
                         self.movement[1] = True
+                    if (k == pygame.K_UP or k == pygame.K_w):
+                        # jumps
+                        # velocity is pointing upwards -> anti-gravity
+                        self.player.velocity[1] = -3
                 if event.type == pygame.KEYUP:
                     k = event.key
-                    if (k == pygame.K_UP or k == pygame.K_w):
+                    if (k == pygame.K_LEFT or k == pygame.K_a):
                         self.movement[0] = False
-                    if (k == pygame.K_DOWN or k == pygame.K_s):
+                    if (k == pygame.K_RIGHT or k == pygame.K_d):
                         self.movement[1] = False
-                
+            
+            # we first scale the display with pygame.transform.scale to fit the screen
+            # we put the scaled display on top of the screen
+            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+            # this updates the screen
             pygame.display.update()
             # runs game at 60 fps - dynamic sleep
             self.clock.tick(60)
