@@ -78,7 +78,7 @@ class Game:
             # update and render clouds
             self.clouds.update()
             self.clouds.render(self.display, offset = render_scroll)
-            
+
             # update and render tile map
             self.tilemap.render(self.display, offset = render_scroll)
 
@@ -88,8 +88,6 @@ class Game:
             # update and render player
             self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
             self.player.render(self.display, offset = render_scroll)
-
-            print(self.tilemap.physics_rects_around(self.player.pos))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

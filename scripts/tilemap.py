@@ -52,9 +52,34 @@ class Tilemap:
         for tile in self.offgrid_tiles:
             surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] - offset[0], tile['pos'][1] - offset[1]))
 
+        # on grid optimization
+        """
+        without optimization:
+        rendering all the tiles on the screen
+        with optimization:
+        determining which tiles should be on the screen
+        rendering only those tiles
+        
+        start = offset[0] // self.tile_size
+        dividing the offset of camera by the tile size
+        gives us the top left tiles x position
+
+        end = (offset[0] + surf.get_width()) // self.tile_size + 1
+        tile coordinate of the right edge + 1
+
+        range(start, end)
+        """
+        for x in range(offset[0] // self.tile_size, (offset[0] + surf.get_width()) // self.tile_size + 1):
+            for y in range(offset[1] // self.tile_size, (offset[1] + surf.get_height()) // self.tile_size + 1):
+                loc = str(x) + ';' + str(y)
+                if loc in self.tilemap:
+                    tile = self.tilemap[loc]
+                    surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1]))
+
+       
         # on grid
-        for loc in self.tilemap:
-            tile = self.tilemap[loc]
+        # for loc in self.tilemap:
+        #    tile = self.tilemap[loc]
             """
             tilemap is dict(dict())
             tile is the inside dict()
@@ -71,6 +96,6 @@ class Tilemap:
             need them to be in grid position
             we need to multiply by the size of tiles in terms of pixels
             """
-            surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1]))
+        #    surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1]))
 
        
