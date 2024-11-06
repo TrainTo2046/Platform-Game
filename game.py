@@ -3,6 +3,7 @@ import pygame
 from scripts.utils import load_image, load_images
 from scripts.entities import PhysicsEntity
 from scripts.tilemap import Tilemap
+from scripts.clouds import Clouds
 
 class Game:
     def __init__(self) -> None:   
@@ -25,7 +26,7 @@ class Game:
         1) create a display half the size of the screen
         2) render everything onto the display
         3) scale the display to fit the screen
-        4) blit disply  on top of the screen
+        4) blit display  on top of the screen
         """
         self.display = pygame.Surface((320, 240))
 
@@ -38,28 +39,55 @@ class Game:
             'large_decor'   : load_images('tiles/large_decor'),
             'grass'         : load_images('tiles/grass'),
             'decor'         : load_images('tiles/decor'),
-            'stone'         : load_images('tiles/stone')
+            'stone'         : load_images('tiles/stone'),
+            'background'    : load_image('background.png'),
+            'clouds'        : load_images('clouds')
         }
-
+        self.clouds = Clouds(self.assets['clouds'], count = 16)
+        
         # creating a player entity
         self.player = PhysicsEntity(self, 'player', (50, 50), (8, 15))
 
         # create tilemap
         self.tilemap = Tilemap(self, tile_size=16)
 
+        # camera
+        self.scroll = [0, 0]
+
     def run(self):
         # game loop
         while True:
-            self.display.fill((14, 219, 248))
+            self.display.blit(self.assets['background'], (0, 0))
+            # how far the camera is from where we want it to be
+            # gets the place where player will be at the center
+            # self.player.rect().centerx - self.display.get_width() / 2
+
+            # were the camera is at right now
+            # ... - self.scroll[0]
+
+            # add it to the scroll
+            # self.scroll[0] += ...
+
+            # further the player is, the faster the camera will move
+            # / 30
+            self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2 - self.scroll[0]) / 30
+            self.scroll[1] += (self.player.rect().centery - self.display.get_width() / 2 - self.scroll[1]) / 30
+            # removes jitter on the player
+            render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
+
+            # update and render clouds
+            self.clouds.update()
+            self.clouds.render(self.display, offset = render_scroll)
+            
             # update and render tile map
-            self.tilemap.render(self.display)
+            self.tilemap.render(self.display, offset = render_scroll)
 
             # want to render the tiles before the player
             # so the tile doesn't hide the player
 
             # update and render player
             self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
-            self.player.render(self.display)
+            self.player.render(self.display, offset = render_scroll)
 
             print(self.tilemap.physics_rects_around(self.player.pos))
 
