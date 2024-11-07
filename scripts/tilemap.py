@@ -15,7 +15,7 @@ AUTOTILE_MAP = {
     tuple(sorted([(1, 0), (-1, 0), (0, 1), (0, -1)])): 8
 }
 
-NEIGHBOR_OFFSETS = [(-1 , 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
+NEIGHBOR_OFFSETS = [(-1, 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
 PHYSICS_TILES = {'grass', 'stone'}
 AUTOTILE_TYPES = {'grass', 'stone'}
 
@@ -30,6 +30,33 @@ class Tilemap:
         # tiles that doesn't line up with the grid
         self.offgrid_tiles = []
 
+    # id_pairs = [(tile type, variant)]
+    def extract(self, id_pairs, keep=False):
+        matches = []
+        # off grid
+        for tile in self.offgrid_tiles.copy():
+            if (tile['type'], tile['variant']) in id_pairs:
+                matches.append(tile.copy())
+                if not keep:
+                    self.offgrid_tiles.remove(tile)
+        # on grid
+        for loc in self.tilemap:
+            tile = self.tilemap[loc]
+            if (tile['type'], tile['variant']) in id_pairs:
+                matches.append(tile.copy())
+                # tile dict is in tile corridnates for the grid
+                # we need pixel coordinates
+                matches[-1]['pos'] = matches[-1]['pos'].copy()
+                # convert to pixel corrdinate x-pos
+                matches[-1]['pos'][0] *= self.tile_size
+                # convert to pixel corrdinate y-pos
+                matches[-1]['pos'][1] *= self.tile_size
+
+                if not keep:
+                    del self.tilemap[loc]
+
+        return matches
+
     # get all the tiles around the player
     # you pass in a pixel pos
     def tiles_around(self, pos):
@@ -41,7 +68,6 @@ class Tilemap:
             check_loc = str(tile_loc[0] + offset[0]) + ';' + str(tile_loc[1] + offset[1])
             if check_loc in self.tilemap:
                 tiles.append(self.tilemap[check_loc])
-        
         return tiles
     
     # get all the tiles you can collide with
@@ -49,7 +75,9 @@ class Tilemap:
         rects = []
         for tile in self.tiles_around(pos):
             if tile['type'] in PHYSICS_TILES:
-                rects.append(pygame.Rect(tile['pos'][0] * self.tile_size, tile['pos'][1] * self.tile_size, self.tile_size, self.tile_size))
+                rects.append(pygame.Rect(tile['pos'][0] * self.tile_size, 
+                                         tile['pos'][1] * self.tile_size, 
+                                         self.tile_size, self.tile_size))
 
         return rects
     
