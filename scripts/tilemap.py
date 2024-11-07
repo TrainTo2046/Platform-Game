@@ -1,8 +1,23 @@
 
 import pygame
+import json
+
+AUTOTILE_MAP = {
+    # if these are neighbors, use tile 0
+    tuple(sorted([(1, 0), (0, 1)])): 0,
+    tuple(sorted([(1, 0), (0, 1), (-1, 0)])): 1,
+    tuple(sorted([(-1, 0), (0, 1)])): 2, 
+    tuple(sorted([(-1, 0), (0, -1), (0, 1)])): 3,
+    tuple(sorted([(-1, 0), (0, -1)])): 4,
+    tuple(sorted([(-1, 0), (0, -1), (1, 0)])): 5,
+    tuple(sorted([(1, 0), (0, -1)])): 6,
+    tuple(sorted([(1, 0), (0, -1), (0, 1)])): 7,
+    tuple(sorted([(1, 0), (-1, 0), (0, 1), (0, -1)])): 8
+}
 
 NEIGHBOR_OFFSETS = [(-1 , 0), (-1, -1), (0, -1), (1, -1), (1, 0), (0, 0), (-1, 1), (0, 1), (1, 1)]
 PHYSICS_TILES = {'grass', 'stone'}
+AUTOTILE_TYPES = {'grass', 'stone'}
 
 class Tilemap:
     def __init__(self, game, tile_size = 16):
@@ -15,15 +30,6 @@ class Tilemap:
         # tiles that doesn't line up with the grid
         self.offgrid_tiles = []
 
-        for i in range(10):
-            # x -> 3-12
-            # y -> 10
-            # horizontal line of grass tiles
-            self.tilemap[str(3 + i) + ';10'] = {'type': 'grass', 'variant':1, 'pos':(3 + i, 10)}
-
-            # vertical line of stone tiles
-            self.tilemap['10;' + str(5 + i)] = {'type': 'stone', 'variant':1, 'pos':(10, 5 + i)}
-    
     # get all the tiles around the player
     # you pass in a pixel pos
     def tiles_around(self, pos):
@@ -98,4 +104,41 @@ class Tilemap:
             """
         #    surf.blit(self.game.assets[tile['type']][tile['variant']], (tile['pos'][0] * self.tile_size - offset[0], tile['pos'][1] * self.tile_size - offset[1]))
 
-       
+    def save(self, path):
+        f = open(path, 'w')
+        # dump the map object onto the f file as json
+        json.dump({'tilemap': self.tilemap, 
+                   'tile_size': self.tile_size, 
+                   'offgrid': self.offgrid_tiles}, f)
+        f.close()
+
+    # using json to store maps for level editior (java script object notations)
+    # json doesn't support tuples
+    # all keys in a dict() must be a string
+    def load(self, path):
+        f = open(path, 'r')
+        map_data = json.load(f)
+        f.close()
+
+        self.tilemap = map_data['tilemap']
+        self.tile_size = map_data['tile_size']
+        self.offgrid_tiles = map_data['offgrid']
+
+    def autotile(self):
+        # iterate through tiles on grid
+        for loc in self.tilemap:
+            # get the tile
+            tile = self.tilemap[loc]
+            neighbors = set()
+            # look through all the neighbors
+            for shift in [(1, 0), (-1, 0), (0, -1), (0, 1)]:
+                # get the neighbour tile
+                check_loc = str(tile['pos'][0] + shift[0]) + ';' + str(tile['pos'][1] + shift[1])
+                # if neighbour tile exists
+                if check_loc in self.tilemap:
+                    if self.tilemap[check_loc]['type'] == tile['type']:
+                        neighbors.add(shift)
+            
+            neighbors = tuple(sorted(neighbors))
+            if (tile['type'] in AUTOTILE_TYPES) and (neighbors in AUTOTILE_MAP):
+                tile['variant'] = AUTOTILE_MAP[neighbors]
