@@ -18,7 +18,6 @@ class Game:
 
         pygame.display.set_caption('Platformer Game')
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
         """
         .Surface()
         generates an empty image with (w, h) dimension
@@ -33,7 +32,6 @@ class Game:
         4) blit display  on top of the screen
         """
         self.display = pygame.Surface((320, 240))
-
         self.clock = pygame.time.Clock()
         
         self.movement = [False, False]
@@ -93,38 +91,26 @@ class Game:
             render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
             
             for rect in self.leaf_spawners:
-                """
-                random.random() -> float btw [0,1]
-                -   checking to see if it is less than the pixel area of our rectangle
-                -   lets you have the spawn rate of the leaves be proportional to the
-                    pixels your hit box for the trees covers
-                -   bigger tree = more leaves
-                -   49999 is control the rate at which the leaves spawn
-                    without it, leaves spawn 100% of the time every single frame
-                """
                 if random.random() * 49999 < rect.width * rect.height:
                     # gives us any position in the rect
-                    pos = (rect.x + random.random() * rect.width, 
-                           rect.y + random.random() * rect.height)
-                    
+                    pos = (rect.x + random.random() * rect.width, rect.y + random.random() * rect.height)
                     # spawns our particles
-                    self.particles.append(Particle(self, 'leaf', pos, velocity=[-0.1, 0,3], 
+                    self.particles.append(Particle(self, 'leaf', pos, velocity=[-0.1, 0.3], 
                                                    frame=random.randint(0, 20)))
-                    
-
+            
             # update and render clouds
             self.clouds.update()
-            self.clouds.render(self.display, offset = render_scroll)
-
+            self.clouds.render(self.display, offset=render_scroll)
+            
             # update and render tile map
-            self.tilemap.render(self.display, offset = render_scroll)
-
+            self.tilemap.render(self.display, offset=render_scroll)
+            
             # want to render the tiles before the player
             # so the tile doesn't hide the player
 
             # update and render player
             self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
-            self.player.render(self.display, offset = render_scroll)
+            self.player.render(self.display, offset=render_scroll)
             
             for particle in self.particles.copy():
                 kill = particle.update()
@@ -137,26 +123,34 @@ class Game:
                     particle.pos[0] += math.sin(particle.animation.frame * 0.035) * 0.3
                 if kill:
                     self.particles.remove(particle)
-
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
+                    k = event.key
+                    if (k == pygame.K_LEFT or k == pygame.K_a):
                         self.movement[0] = True
-                    if event.key == pygame.K_RIGHT:
+                    if (k == pygame.K_RIGHT or k == pygame.K_d):
                         self.movement[1] = True
-                    if event.key == pygame.K_UP:
+                    if (k == pygame.K_UP or k == pygame.K_w):
+                        # jumps
+                        # velocity is pointing upwards -> anti-gravity
                         self.player.velocity[1] = -3
                 if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_LEFT:
+                    k = event.key
+                    if (k == pygame.K_LEFT or k == pygame.K_a):
                         self.movement[0] = False
-                    if event.key == pygame.K_RIGHT:
+                    if (k == pygame.K_RIGHT or k == pygame.K_d):
                         self.movement[1] = False
             
+            # we first scale the display with pygame.transform.scale to fit the screen
+            # we put the scaled display on top of the screen
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+            # this updates the screen
             pygame.display.update()
+            # runs game at 60 fps - dynamic sleep
             self.clock.tick(60)
 
 Game().run()
