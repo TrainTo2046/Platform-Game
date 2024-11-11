@@ -137,7 +137,7 @@ class Game:
                     if (k == pygame.K_UP or k == pygame.K_w):
                         # jumps
                         # velocity is pointing upwards -> anti-gravity
-                        self.player.velocity[1] = -3
+                        self.player.jump()
                 if event.type == pygame.KEYUP:
                     k = event.key
                     if (k == pygame.K_LEFT or k == pygame.K_a):

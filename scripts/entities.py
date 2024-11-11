@@ -26,6 +26,7 @@ class PhysicsEntity:
         # set current animation to idle
         self.set_action('idle')
 
+        self.last_movement = [0, 0]
     # collision_rect
     def rect(self):
         # (x, y) (w, h)
@@ -97,6 +98,12 @@ class PhysicsEntity:
         if movement[0] < 0:
             self.flip = True
 
+        # movement is the input to the update
+        # not the acutal movement that was executed upon
+        # if you are moving into the wall, movement is the intent to move into the wall
+        # not actutally hitting the wall
+        self.last_movement = movement
+
         # apply gravity to make the player fall
         # apply acceleration by modifying velocity
         # remeber the top left is (0, 0)
@@ -126,6 +133,16 @@ class Player(PhysicsEntity):
         super().__init__(game, 'player', pos, size)
         # check how long we have been in the air
         self.air_time = 0
+        """
+        a player will have one jump
+        a wall jump will consume that one jump
+        if you are on a wall and run out of jumps, can still jump
+
+        2:
+            jump
+            jump off a wall
+        """
+        self.jumps = 1
 
     def update(self, tilemap, movement=(0, 0)):
         super().update(tilemap, movement=movement)
@@ -134,12 +151,74 @@ class Player(PhysicsEntity):
         # this air time animation logic is only for the player
         self.air_time += 1
 
+        self.wall_slide = False
+
         if self.collision['down']:
             self.air_time = 0
+            # when you hit the floor, the jumps resets
+            self.jumps = 1
 
-        if self.air_time > 4:
-            self.set_action('jump')
-        elif movement[0] != 0:
-            self.set_action('run')
+        self.wall_slide = False
+        # if we hit a wall on either side and we are on the air, we should slide on the wall
+        if (self.collision['right'] or self.collision['left']) and self.air_time > 4:
+            self.wall_slide = True
+            # capping the down velocity at 0.5
+            self.velocity[1] = min(self.velocity[1], 0.5)
+            # For animation of the player
+            # if hit the right wall, don't want to flip the player
+            if self.collision['right']:
+                self.flip = False
+            else:
+                self.flip = True
+            # updating the animation for the player
+            self.set_action('wall_slide')
+
+        if not self.wall_slide:
+            if self.air_time > 4:
+                self.set_action('jump')
+            elif movement[0] != 0:
+                self.set_action('run')
+            else:
+                self.set_action('idle')
+
+        # normalizaiton on the horizontal velocity
+        # bring the velocity toward 0
+        if self.velocity[0] > 0:
+            self.velocity[0] = max(self.velocity[0] - 0.1, 0)
         else:
-            self.set_action('idle')
+            self.velocity[0] = min(self.velocity[0] + 0.1, 0)
+    
+    def jump(self):
+        # for wall slide
+        if self.wall_slide:
+            # facing left and movement is going to the left
+            if self.flip and self.last_movement[0] < 0:
+                # push you to the right, push you away from the wall
+                self.velocity[0] = 3.5
+                # push you up
+                self.velocity[1] = -2.5
+                # jump animation
+                self.air_time = 5
+                # allows you to wall jump with 0 jumps left
+                # prevents jumps < 0
+                self.jumps = max(0, self.jumps - 1)
+                return True
+            # facing right and movement is going to the rigg=ht
+            elif not self.flip and self.last_movement[0] > 0:
+                self.velocity[0] = -3.5
+                # push you up
+                self.velocity[1] = -2.5
+                # jump animation
+                self.air_time = 5
+                # allows you to wall jump with 0 jumps left
+                # prevents jumps < 0
+                self.jumps = max(0, self.jumps - 1)
+                return True
+
+        # for regualr jump
+        elif self.jumps:
+            self.velocity[1] = -3
+            self.jumps -= 1
+            # it will set the jump animation in motion
+            self.air_time = 5
+            return True
