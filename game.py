@@ -63,13 +63,19 @@ class Game:
         self.player = Player(self, (50, 50), (8, 15))
         
         self.tilemap = Tilemap(self, tile_size=16)
-        self.load_level(0)
+
+        self.level = 0
+        self.load_level(self.level)
         
         self.projectiles = []
         self.particles = []
         self.sparks = []
         self.scroll = [0, 0]
         self.dead = 0
+
+        # circle that shrinks to black at the end of a level
+        # circle that expands out to reveal the next level
+        self.transition = -30
 
         self.screenshake = 0  
     
@@ -99,12 +105,30 @@ class Game:
             # screenshake value goes down to 0
             self.screenshake = max(0, self.screenshake - 1)
 
+            """
+            when abs(self.transition) == 0 then you can see everything
+            when abs(self.transition) == 30 then you can't see anything
+             -> you load the level when you can't see anything
+
+            when there is no enemy -> time to transition to next level
+            """
+            if not len(self.enemies):
+                self.transition += 1
+
+                # if the screen is black -> load new level
+                if self.transition > 30:
+                    self.level += 1
+                    self.load_level(self.level)
+            if self.transition < 0:
+                self.transition += 1
+
+
             # timer starts soon as you die
             # when timer runs out 40 frames -> the level is restarted
             if self.dead:
                 self.dead += 1
                 if self.dead > 40:
-                    self.load_level(0)
+                    self.load_level(self.level)
             
             # how far the camera is from where we want it to be
             # gets the place where player will be at the center
@@ -250,6 +274,25 @@ class Game:
                     if (k == pygame.K_RIGHT or k == pygame.K_d):
                         self.movement[1] = False
             
+            # only runs when you have beat the level
+            if self.transition:
+                # creates a surface that is black and size of the display
+                transition_surf = pygame.Surface(self.display.get_size())
+
+                # draws a circle on the transition_surf surface,color -> white
+                # center of the circle -> (...//2, ...//2)
+                # radius -> (30 - abs(self.transition)) * 8
+                pygame.draw.circle(transition_surf, (255, 255, 255), (self.display.get_width() // 2, self.display.get_height() // 2), (30 - abs(self.transition)) * 8)
+                
+                # ignores the white color
+                # so the circle color is white and if it ignores the white color,
+                # you will see what is behind it
+                transition_surf.set_colorkey((255, 255, 255))
+                
+                # put the surface on the actual display of the game
+                self.display.blit(transition_surf, (0, 0))
+
+
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2)
             # we first scale the display with pygame.transform.scale to fit the screen
             # we put the scaled display on top of the screen
