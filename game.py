@@ -70,6 +70,8 @@ class Game:
         self.sparks = []
         self.scroll = [0, 0]
         self.dead = 0
+
+        self.screenshake = 0  
     
     def load_level(self, map_id):
         self.dead = 0
@@ -93,6 +95,9 @@ class Game:
         # game loop
         while True:
             self.display.blit(self.assets['background'], (0, 0))
+
+            # screenshake value goes down to 0
+            self.screenshake = max(0, self.screenshake - 1)
 
             # timer starts soon as you die
             # when timer runs out 40 frames -> the level is restarted
@@ -188,6 +193,9 @@ class Game:
                         self.projectiles.remove(projectile)
                         # when player is hit by projectile
                         self.dead += 1
+                        # when player gets shot, screen shake is applied
+                        self.screenshake = max(16, self.screenshake)
+
                         # spark go off when projectile hits a player
                         # # spawns 30 sparks
                         for i in range(30):
@@ -242,9 +250,10 @@ class Game:
                     if (k == pygame.K_RIGHT or k == pygame.K_d):
                         self.movement[1] = False
             
+            screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2)
             # we first scale the display with pygame.transform.scale to fit the screen
             # we put the scaled display on top of the screen
-            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
             # this updates the screen
             pygame.display.update()
             # runs game at 60 fps - dynamic sleep

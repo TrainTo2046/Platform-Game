@@ -164,6 +164,8 @@ class Player(PhysicsEntity):
         # when you fall off the map
         if self.air_time > 120:
             self.game.dead += 1
+            # when player falls out of map, screen shake is applied
+            self.game.screenshake = max(16, self.game.screenshake)
 
         if self.collision['down']:
             self.air_time = 0
@@ -371,6 +373,8 @@ class Enemy(PhysicsEntity):
             #  walking set to random number between 30 and 120 -> 0.5 to 2 secs
             #  number of frames the the enemy will continue to walk for
             self.walking = random.randint(30, 120)
+        
+        # with new parameters, we update the enemy movement
         super().update(tilemap, movement=movement)
 
 
@@ -385,6 +389,9 @@ class Enemy(PhysicsEntity):
         if abs(self.game.player.dashing) >= 50:
             # if rect of the enemy collides with rect of the player
             if self.rect().colliderect(self.game.player.rect()):
+                # when enemy gets killed, screen shake is applied
+                self.game.screenshake = max(16, self.game.screenshake)
+
                 # spark go off when projectile hits a player
                 # # spawns 30 sparks
                 for i in range(30):
