@@ -2,6 +2,8 @@ import pygame
 import math
 import random
 from scripts.particle import Particle
+from scripts.spark import Spark
+
 
 class PhysicsEntity:
     def __init__(self, game, e_type, pos, size):
@@ -157,6 +159,12 @@ class Player(PhysicsEntity):
         # different entity will have different animation logic
         # this air time animation logic is only for the player
         self.air_time += 1
+
+        # if you are in the air more than 2 secs, you dies
+        # when you fall off the map
+        if self.air_time > 120:
+            self.game.dead += 1
+
         if self.collision['down']:
             self.air_time = 0
             # when you hit the floor, the jumps resets
@@ -336,14 +344,26 @@ class Enemy(PhysicsEntity):
                         # spawn projectile to the left
                          # [(x, y), direction, timer]
                         self.game.projectiles.append([[self.rect().centerx - 7, self.rect().centery], -1.5, 0])
-                    
+
+                        # spawn the spark for the projectile
+                        # spawns 4 sparks
+                        for i in range(4):
+                            # give Sparks 
+                            # pos, angle = rand number btw (0, 0.5) because it is shooting left + math.pi
+                            # speed between 0, 2
+                            self.game.sparks.append(Spark(self.game.projectiles[-1][0], random.random() - 0.5 + math.pi, 2 + random.random()))
                     # if player is to the right of enemy and enemy is facing right
                     if (not self.flip and dis[0] > 0):
                         # spawn projectile to the right
                          # [(x, y), direction, timer]
                         self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 1.5, 0])
-                
-            
+                        # spawn the spark for the projectile
+                        for i in range(4):
+                            # give Sparks 
+                            # pos, angle = rand number btw (0, 0.5) because it is shooting right no math.pi
+                            # speed between 0, 2
+                            self.game.sparks.append(Spark(self.game.projectiles[-1][0], random.random() - 0.5, 2 + random.random()))
+                    
 
         # has 1 in 100 chance of occuring, 60fps -> 1 in 1.67 secs
         # if not walking
@@ -359,6 +379,29 @@ class Enemy(PhysicsEntity):
             self.set_action('run')
         else:
             self.set_action('idle')
+
+        """ player kills enemy """
+        # when player is dashing
+        if abs(self.game.player.dashing) >= 50:
+            # if rect of the enemy collides with rect of the player
+            if self.rect().colliderect(self.game.player.rect()):
+                # spark go off when projectile hits a player
+                # # spawns 30 sparks
+                for i in range(30):
+                    # gives random angle in a circle in radians
+                    angle = random.random() * math.pi * 2
+                    speed = random.random() * 5
+                    self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random()))
+
+                    # add particles -> 30 particles as well
+                    self.game.particles.append(Particle(self.game, 'particle', self.rect().center, velocity=[math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame=random.randint(0, 7)))
+
+                # add big spark when the enemy dies
+                self.game.sparks.append(Spark(self.rect().center, 0, 5 + random.random()))
+                self.game.sparks.append(Spark(self.rect().center, math.pi, 5 + random.random()))
+                
+                # removes the enemy on the game.py side
+                return True
     
     def render(self, surf, offset=(0, 0)):
         super().render(surf, offset=offset)

@@ -8,6 +8,7 @@ from scripts.entities import PhysicsEntity, Player, Enemy
 from scripts.tilemap import Tilemap
 from scripts.clouds import Clouds
 from scripts.particle import Particle
+from scripts.spark import Spark
 
 class Game:
     def __init__(self):
@@ -62,8 +63,18 @@ class Game:
         self.player = Player(self, (50, 50), (8, 15))
         
         self.tilemap = Tilemap(self, tile_size=16)
-        self.tilemap.load('map.json')
+        self.load_level(0)
         
+        self.projectiles = []
+        self.particles = []
+        self.sparks = []
+        self.scroll = [0, 0]
+        self.dead = 0
+    
+    def load_level(self, map_id):
+        self.dead = 0
+        self.tilemap.load('data/maps/' + str(map_id) + '.json')
+
         # hardcoding a hit box because there is only one type of tile that can spawn leaves
         self.leaf_spawners = []
         for tree in self.tilemap.extract([('large_decor', 2)], keep=True):
@@ -74,18 +85,21 @@ class Game:
         for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1)]):
             if spawner['variant'] == 0:
                 self.player.pos = spawner['pos']
+                self.player.air_time = 0
             else:
                 self.enemies.append(Enemy(self, spawner['pos'], (8, 15)))
 
-        self.projectiles = []
-        self.particles = []
-        
-        self.scroll = [0, 0]
-        
     def run(self):
         # game loop
         while True:
             self.display.blit(self.assets['background'], (0, 0))
+
+            # timer starts soon as you die
+            # when timer runs out 40 frames -> the level is restarted
+            if self.dead:
+                self.dead += 1
+                if self.dead > 40:
+                    self.load_level(0)
             
             # how far the camera is from where we want it to be
             # gets the place where player will be at the center
@@ -124,12 +138,16 @@ class Game:
 
             # want to render enemies before player
             for enemy in self.enemies.copy():
-                enemy.update(self.tilemap, (0, 0))
+                kill = enemy.update(self.tilemap, (0, 0))
                 enemy.render(self.display, offset=render_scroll)
 
+                if kill:
+                    self.enemies.remove(enemy)
+
             # update and render player
-            self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
-            self.player.render(self.display, offset=render_scroll)
+            if not self.dead:
+                self.player.update(self.tilemap, (self.movement[1] - self.movement[0], 0))
+                self.player.render(self.display, offset=render_scroll)
 
             # want the projectiles to be on top of the player
             # [(x, y), direction, timer]
@@ -149,6 +167,13 @@ class Game:
                     # if it hits the wall, we remove it
                     self.projectiles.remove(projectile)
 
+                    # spark go off when projectile hits a solid tile (wall)
+                    # spawns 4 sparks
+                    for i in range(4):
+                        # (math.pi if projectile[1] > 0 else 0)
+                        # -> shoot the spark left only if the projectile is going right, vice versa
+                        self.sparks.append(Spark(projectile[0], random.random() - 0.5 + (math.pi if projectile[1] > 0 else 0), 2 + random.random()))
+
                 # if time is greater than 6 secs, we remove the porjectile
                 # when the projectile flies off the map
                 elif projectile[2] > 360:
@@ -161,7 +186,26 @@ class Game:
                     # if the projectile hits the player
                     if self.player.rect().collidepoint(projectile[0]):
                         self.projectiles.remove(projectile)
-            
+                        # when player is hit by projectile
+                        self.dead += 1
+                        # spark go off when projectile hits a player
+                        # # spawns 30 sparks
+                        for i in range(30):
+                            # gives random angle in a circle in radians
+                            angle = random.random() * math.pi * 2
+                            speed = random.random() * 5
+                            self.sparks.append(Spark(self.player.rect().center, angle, 2 + random.random()))
+
+                            # add particles -> 30 particles as well
+                            self.particles.append(Particle(self, 'particle', self.player.rect().center, velocity=[math.cos(angle + math.pi) * speed * 0.5, math.sin(angle + math.pi) * speed * 0.5], frame=random.randint(0, 7)))
+    
+            # sparks is below particles
+            for spark in self.sparks.copy():
+                kill = spark.update()
+                spark.render(self.display, offset=render_scroll)
+                if kill:
+                    self.sparks.remove(spark)
+
             for particle in self.particles.copy():
                 kill = particle.update()
                 particle.render(self.display, offset=render_scroll)
