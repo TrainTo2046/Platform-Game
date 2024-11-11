@@ -50,6 +50,7 @@ class Game:
             'player/slide': Animation(load_images('entities/player/slide')),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
             'particle/leaf': Animation(load_images('particles/leaf'), img_dur=20, loop=False),
+            'particle/particle': Animation(load_images('particles/particle'), img_dur=6, loop=False),
         }
         
         self.clouds = Clouds(self.assets['clouds'], count=16)
@@ -138,6 +139,9 @@ class Game:
                         # jumps
                         # velocity is pointing upwards -> anti-gravity
                         self.player.jump()
+                    # player dashes when you press x
+                    if event.key == pygame.K_x:
+                        self.player.dash()
                 if event.type == pygame.KEYUP:
                     k = event.key
                     if (k == pygame.K_LEFT or k == pygame.K_a):
