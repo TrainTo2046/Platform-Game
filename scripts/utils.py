@@ -41,7 +41,7 @@ class Animation:
     # have it somewhere it is easy to reach
     # anytime something wants to use that animation, copy its own instance of the animation
 
-    # in python if you assign an object to the list, its a reference to the object instead of a copy
+    # in python, if you assign an object to the list, its a reference to the object instead of a copy
     def copy(self):
         # instead of returning a copy, it returns a reference
         return Animation(self.images, self.img_duration, self.loop)

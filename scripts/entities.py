@@ -48,6 +48,7 @@ class PhysicsEntity:
         frame_movement = (movement[0] + self.velocity[0],  movement[1] + self.velocity[1])
 
         # (x, y) movement change
+        # x-axis movement change
         self.pos[0] += frame_movement[0]
 
         # collision detection x-axis
@@ -69,10 +70,11 @@ class PhysicsEntity:
                     entity_rect.left = rect.right
                     self.collision['left'] = True
 
-                # only modifying the entity_rect pos here and not player pos
-                # have to go and upadate players pos
+                # above -> only modifying the entity_rect pos here and not player pos
+                # now -> have to go and upadate players pos
                 self.pos[0] = entity_rect.x
 
+        # y-axis movement change
         self.pos[1] += frame_movement[1]
 
         # collision detection y-axis
@@ -90,8 +92,8 @@ class PhysicsEntity:
                     entity_rect.top = rect.bottom
                     self.collision['up'] = True
 
-                # only modifying the entity_rect pos here and not player pos
-                # have to go and upadate players pos
+                # above -> only modifying the entity_rect pos here and not player pos
+                # now -> have to go and upadate players pos
                 self.pos[1] = entity_rect.y
         
         # if you are moving right, player is facing right
@@ -107,11 +109,12 @@ class PhysicsEntity:
         # not actutally hitting the wall
         self.last_movement = movement
 
-        # apply gravity to make the player fall
+        # apply gravity to make the player fall (vertical axis)
         # apply acceleration by modifying velocity
-        # remeber the top left is (0, 0)
+        # remember the top left is (0, 0)
         self.velocity[1] = min(5, self.velocity[1] + 0.1)
 
+        # if you hit a tile above you or below you, reset the velocity
         if self.collision['down'] or self.collision['up']:
             self.velocity[1] = 0
 
@@ -129,7 +132,6 @@ class PhysicsEntity:
                   (self.pos[0] - offset[0] + self.anim_offset[0],  # x- axis
                   self.pos[1] - offset[1] + self.anim_offset[1]))  # y- axis
         #surf.blit(self.game.assets['player'], (self.pos[0] - offset[0], self.pos[1] - offset[1]))
-
     
 class Player(PhysicsEntity):
     def __init__(self, game, pos, size):
@@ -285,3 +287,56 @@ class Player(PhysicsEntity):
             # if facing right
             else:
                 self.dashing = 60
+
+class Enemy(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'enemy', pos, size)
+
+        # Enemies should be able to walk around but only to the edge of the island
+        # Cannot walk off the map
+        # Shoot at the player, horizontally
+        # Need to see player to shoot horizontally
+
+        self.walking = 0
+
+    def update(self, tilemap, movement=(0, 0)):
+        # if walking
+        if self.walking:
+
+            # looking ahead
+            # x-axis (-7 if self.flip else 7) from the center of rectange
+            # if facing right then + 7, left then - 7
+            # y-axis (+23 below into the ground)
+            # takes the location to see if there is a tile there
+            if tilemap.solid_check((self.rect().centerx + (-7 if self.flip else 7), self.pos[1] + 23)):
+                # if enemy runs into a wall on right or left side, turn around
+                if (self.collision['right'] or self.collision['left']):
+                    self.flip = not self.flip
+                else:
+                    # keep y-axis movement
+                    # x-axis movement:
+                    # if enemy facing right, move right
+                    # if enemy facing left, move left
+                    movement = (movement[0] - 0.5 if self.flip else 0.5, movement[1])
+
+            # if there is no tile, you flip the enemy direction so they go back
+            else:
+                self.flip = not self.flip
+            
+            # move walking to 0 over time
+            self.walking = max(0, self.walking - 1)
+
+        # has 1 in 100 chance of occuring, 60fps -> 1 in 1.67 secs
+        # if not walking
+        elif random.random() < 0.01:
+            #  walking set to random number between 30 and 120 -> 0.5 to 2 secs
+            #  number of frames the the enemy will continue to walk for
+            self.walking = random.randint(30, 120)
+        super().update(tilemap, movement=movement)
+
+
+        # Animation for enemy
+        if movement[0] != 0:
+            self.set_action('run')
+        else:
+            self.set_action('idle')

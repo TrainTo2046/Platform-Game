@@ -70,6 +70,16 @@ class Tilemap:
                 tiles.append(self.tilemap[check_loc])
         return tiles
     
+    def solid_check(self, pos):
+        # get location
+        tile_loc = str(int(pos[0] // self.tile_size)) + ';' + str(int(pos[1] // self.tile_size))
+        # check if tile exist in the location
+        if tile_loc in self.tilemap:
+            # if it does, check if it a physics tile
+            if self.tilemap[tile_loc]['type'] in PHYSICS_TILES:
+                # return the tile data
+                return self.tilemap[tile_loc]
+            
     # get all the tiles you can collide with
     def physics_rects_around(self, pos):
         rects = []
