@@ -325,6 +325,25 @@ class Enemy(PhysicsEntity):
             
             # move walking to 0 over time
             self.walking = max(0, self.walking - 1)
+            # when the enemy stops moving, then it shoots
+            if not self.walking:
+                # calculate the distance between enemy and player
+                dis = (self.game.player.pos[0] - self.pos[0], self.game.player.pos[1] - self.pos[1])
+                # y-axis offset btw player and the enemy is less than 16 pixels
+                if (abs(dis[1]) < 16):
+                    # if player is to left of enemy and enemy is facing left
+                    if (self.flip and dis[0] < 0):
+                        # spawn projectile to the left
+                         # [(x, y), direction, timer]
+                        self.game.projectiles.append([[self.rect().centerx - 7, self.rect().centery], -1.5, 0])
+                    
+                    # if player is to the right of enemy and enemy is facing right
+                    if (not self.flip and dis[0] > 0):
+                        # spawn projectile to the right
+                         # [(x, y), direction, timer]
+                        self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 1.5, 0])
+                
+            
 
         # has 1 in 100 chance of occuring, 60fps -> 1 in 1.67 secs
         # if not walking
@@ -340,3 +359,18 @@ class Enemy(PhysicsEntity):
             self.set_action('run')
         else:
             self.set_action('idle')
+    
+    def render(self, surf, offset=(0, 0)):
+        super().render(surf, offset=offset)
+
+        # show enemy gun
+        # gun needs to flip based on the direction the player is facing
+        # if player is facing left
+        # pygame.transorm.flip, True, False -> flips the gun image only on x-axis, and not y-axis
+        # rest is  where we are going to put the gun
+        if self.flip:
+            surf.blit(pygame.transform.flip(self.game.assets['gun'], True, False), (self.rect().centerx - 4 - self.game.assets['gun'].get_width() - offset[0], self.rect().centery - offset[1]))
+        
+        # don't need to flip in this case
+        else:
+            surf.blit(self.game.assets['gun'], (self.rect().centerx + 4 - offset[0], self.rect().centery - offset[1]))
