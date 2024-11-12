@@ -290,6 +290,8 @@ class Player(PhysicsEntity):
     
     def dash(self):
         if not self.dashing:
+            # plays the dash sound when player dashes
+            self.game.sfx['dash'].play()
             # if facing left
             if self.flip:
                 self.dashing = -60
@@ -343,6 +345,9 @@ class Enemy(PhysicsEntity):
                 if (abs(dis[1]) < 16):
                     # if player is to left of enemy and enemy is facing left
                     if (self.flip and dis[0] < 0):
+                        # plays the shooting sound
+                        self.game.sfx['shoot'].play()
+
                         # spawn projectile to the left
                          # [(x, y), direction, timer]
                         self.game.projectiles.append([[self.rect().centerx - 7, self.rect().centery], -1.5, 0])
@@ -356,6 +361,9 @@ class Enemy(PhysicsEntity):
                             self.game.sparks.append(Spark(self.game.projectiles[-1][0], random.random() - 0.5 + math.pi, 2 + random.random()))
                     # if player is to the right of enemy and enemy is facing right
                     if (not self.flip and dis[0] > 0):
+                        # plays the shooting sound
+                        self.game.sfx['shoot'].play()
+
                         # spawn projectile to the right
                          # [(x, y), direction, timer]
                         self.game.projectiles.append([[self.rect().centerx + 7, self.rect().centery], 1.5, 0])
@@ -392,6 +400,9 @@ class Enemy(PhysicsEntity):
                 # when enemy gets killed, screen shake is applied
                 self.game.screenshake = max(16, self.game.screenshake)
 
+                # plays the hit sound when enemies get hit
+                self.game.sfx['hit'].play()
+                
                 # spark go off when projectile hits a player
                 # # spawns 30 sparks
                 for i in range(30):
