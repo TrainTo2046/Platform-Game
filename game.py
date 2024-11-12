@@ -1,3 +1,4 @@
+import os
 import sys
 import random
 import math
@@ -32,7 +33,8 @@ class Game:
         3) scale the display to fit the screen
         4) blit display  on top of the screen
         """
-        self.display = pygame.Surface((320, 240))
+        self.display = pygame.Surface((320, 240), pygame.SRCALPHA)
+        self.display_2 = pygame.Surface((320, 240))
         self.clock = pygame.time.Clock()
         
         self.movement = [False, False]
@@ -81,6 +83,7 @@ class Game:
     
     def load_level(self, map_id):
         self.dead = 0
+        self.transition = -30
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
 
         # hardcoding a hit box because there is only one type of tile that can spawn leaves
@@ -100,7 +103,11 @@ class Game:
     def run(self):
         # game loop
         while True:
-            self.display.blit(self.assets['background'], (0, 0))
+            # any object you don't want a outline in goes in display_2
+            # makes display transparent, this gets the outline
+            self.display.fill((0, 0, 0, 0))
+            # this doesn't get the outline
+            self.display_2.blit(self.assets['background'], (0, 0))
 
             # screenshake value goes down to 0
             self.screenshake = max(0, self.screenshake - 1)
@@ -114,10 +121,11 @@ class Game:
             """
             if not len(self.enemies):
                 self.transition += 1
-
                 # if the screen is black -> load new level
                 if self.transition > 30:
-                    self.level += 1
+                    # os.listdir('data/maps') -> creates a list in data/maps directory
+                    # min(a, b) -> so the self.level doesn't load level that doesn't exist
+                    self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
                     self.load_level(self.level)
             if self.transition < 0:
                 self.transition += 1
@@ -127,6 +135,11 @@ class Game:
             # when timer runs out 40 frames -> the level is restarted
             if self.dead:
                 self.dead += 1
+                # locks the current level when you die so you don't go to the next level
+                # stays on the level you died for a while then restarts the level
+                if self.dead == 10:
+                    self.transition = min(30, self.transition + 1)
+                # loads the level again
                 if self.dead > 40:
                     self.load_level(self.level)
             
@@ -157,7 +170,7 @@ class Game:
             
             # update and render clouds
             self.clouds.update()
-            self.clouds.render(self.display, offset=render_scroll)
+            self.clouds.render(self.display_2, offset=render_scroll)
             
             # update and render tile map
             self.tilemap.render(self.display, offset=render_scroll)
@@ -238,6 +251,21 @@ class Game:
                 if kill:
                     self.sparks.remove(spark)
 
+            # don't want sparks and particles to have the outline so outline code below
+
+            # creating a mask from the display where we render everything that we want to have a outline
+            # mask is image with two color (black and white)
+            # can do binary operation on them
+            # we use it convert something that has multiple colors to only two colors
+            display_mask =  pygame.mask.from_surface(self.display)
+            
+            # creates outline of what is on the surface
+            # (r, g, b, alpha) alpha = transperency, 0 is fully transparent
+            display_sillhouette = display_mask.to_surface(setcolor=(0,0,0,180), unsetcolor=(0,0,0,0))
+            for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                # puts the outline on each image being rendered
+                self.display_2.blit(display_sillhouette, offset)
+
             for particle in self.particles.copy():
                 kill = particle.update()
                 particle.render(self.display, offset=render_scroll)
@@ -292,11 +320,12 @@ class Game:
                 # put the surface on the actual display of the game
                 self.display.blit(transition_surf, (0, 0))
 
-
+            # put eveything without an outline on display_2
+            self.display_2.blit(self.display, (0, 0))
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2)
             # we first scale the display with pygame.transform.scale to fit the screen
             # we put the scaled display on top of the screen
-            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
+            self.screen.blit(pygame.transform.scale(self.display_2, self.screen.get_size()), screenshake_offset)
             # this updates the screen
             pygame.display.update()
             # runs game at 60 fps - dynamic sleep
