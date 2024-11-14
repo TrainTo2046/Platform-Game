@@ -67,6 +67,6 @@
 
 ### 7. **Resource**
    - This project follows the Pygame Platformer project created by DaFluffyPotato.
-   - If you're interested in learning about this project more, you can find it [here](https://www.youtube.com/watch?v=2gABYM5M0ww).
+   - If you're interested in learning about this project more, you can find it [here](https://dafluffypotato.com/assets/pg_tutorial).
 
 ---
