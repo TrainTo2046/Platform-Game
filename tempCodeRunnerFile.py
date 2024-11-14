@@ -1,1 +1,1 @@
-load_level(
+collide
