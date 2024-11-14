@@ -11,7 +11,6 @@
             - update the display as the game progresses.
             - take user inputs and translate them into game procedure.
     - This project follows the platformer project created by DaFluffyPotato.
-     ```
 
 ### 3. **What I Learned**
    - Tile Map and Collision Detection:
@@ -35,7 +34,6 @@
         - Implement a Level Editor for easy creation of levels using tile assets loaded into the program.
         - Program allows saving the level as a json file and importing into the game for use.
         - Create transition between different levels, enabling a multi-level game.
-     ```
 
 ### 4. **Challenges I Faced**
    - Implementing interactions between different entities
@@ -66,11 +64,9 @@
         - Add more complex AI behaviors and enemy types.
    - Optimize performance:
         - Use more advanced optimization techniques for smoother gameplay.
-     ```
 
 ### 7. **Resource**
    - This project follows the Pygame Platformer project created by DaFluffyPotato.
    - If you're interested in learning about this project more, you can find it [here](https://www.youtube.com/watch?v=2gABYM5M0ww).
-     ```
 
 ---
